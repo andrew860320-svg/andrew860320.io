@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>投資與貸款追蹤 PWA</title>
-    <!-- 引入 Tailwind CSS 讓介面現代化 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,75 +17,443 @@
         <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full">PWA 運行中</span>
     </header>
 
-    <!-- 主要內容區 -->
-    <main class="p-4 max-w-md mx-auto space-y-6">
-
-        <!-- 總資產卡片 -->
-        <section class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-lg">
-            <h2 class="text-sm text-slate-400">槓桿組合總市值</h2>
-            <div class="text-3xl font-extrabold text-white mt-1">$212,360 <span class="text-xs text-slate-400 font-normal">TWD</span></div>
-            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between text-sm">
-                <span>維持率安全防線</span>
-                <span class="text-emerald-400 font-bold">✅ 穩定 (>160%)</span>
-            </div>
-        </section>
-
-        <!-- 持倉清單 -->
-        <section class="space-y-3">
-            <h3 class="text-lg font-semibold text-slate-200">持倉與加碼狀態</h3>
+    <!-- 頁面一：總覽 (Dashboard) -->
+    <main id="view-dashboard" class="p-4 max-w-md mx-auto space-y-6">
+        <section class="bg-gradient-to-br from-slate-800 to-slate-800/80 p-5 rounded-2xl border border-slate-700 shadow-xl space-y-3">
+            <h2 class="text-xs font-semibold text-slate-400 tracking-wider">總資產淨值 (折合 TWD)</h2>
+            <div id="grand-total-value" class="text-3xl font-extrabold text-white">計算中...</div>
             
-            <!-- 卡片 1 -->
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
-                <div>
-                    <div class="font-bold text-lg">TPE:00631L</div>
-                    <div class="text-xs text-slate-400">現價: 35.44 | 股數: 5,062</div>
+            <div class="pt-3 border-t border-slate-700/60 space-y-2 text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-300">質押維持率安全防線</span>
+                    <span id="dashboard-maintenance-badge" class="font-bold px-2 py-0.5 rounded bg-slate-700 text-slate-300">計算中...</span>
                 </div>
-                <div class="text-right">
-                    <span class="inline-block px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-md">✅ 比例穩定</span>
-                    <div class="text-xs text-slate-400 mt-1">目標: 80%</div>
-                </div>
-            </div>
-
-            <!-- 卡片 2 -->
-            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
-                <div>
-                    <div class="font-bold text-lg">TPE:00713</div>
-                    <div class="text-xs text-slate-400">現價: 59.50 | 股數: 554</div>
-                </div>
-                <div class="text-right">
-                    <span class="inline-block px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-md">✅ 比例穩定</span>
-                    <div class="text-xs text-slate-400 mt-1">目標: 20%</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-300">300% 安全線調整空間</span>
+                    <span id="dashboard-diff-amount" class="font-bold text-slate-200">---</span>
                 </div>
             </div>
         </section>
 
-        <!-- 貸款試算模組 -->
-        <section class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-            <h3 class="text-lg font-semibold text-slate-200">簡易貸款 / 質押利息試算</h3>
-            <div>
-                <label class="text-xs text-slate-400">貸款本金 (TWD)</label>
-                <input type="number" value="500000" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500">
-            </div>
-            <div>
-                <label class="text-xs text-slate-400">年利率 (%)</label>
-                <input type="number" value="2.35" step="0.01" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500">
+        <section class="space-y-4">
+            <h3 class="text-base font-semibold text-slate-200">各組合資產與加碼提示</h3>
+            <div id="group-container" class="space-y-3">
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-center text-slate-400 text-sm">
+                    正在載入雲端數據...
+                </div>
             </div>
         </section>
+    </main>
 
+    <!-- 頁面二：新增交易 (Transaction) -->
+    <main id="view-transaction" class="p-4 max-w-md mx-auto space-y-6 hidden">
+        <section class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+            <h2 class="text-lg font-bold text-emerald-400 border-b border-slate-700 pb-2">📝 新增買賣交易紀錄</h2>
+            <form id="tx-form" onsubmit="submitTransaction(event)" class="space-y-3 text-sm">
+                <div>
+                    <label class="text-xs text-slate-400">交易日期</label>
+                    <input type="date" id="tx-date" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">組合分類</label>
+                    <select id="tx-category" onchange="onCategoryChange()" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                        <option value="">請選擇組合分類</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">股票代號</label>
+                    <select id="tx-symbol" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                        <option value="">請先選擇組合分類</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">買入股數</label>
+                        <input type="number" id="tx-shares" step="any" placeholder="0" oninput="calculateTotal()" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">成交單價</label>
+                        <input type="number" id="tx-price" step="any" placeholder="0.00" oninput="calculateTotal()" required class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">手續費</label>
+                        <input type="number" id="tx-fee" step="any" value="0" oninput="calculateTotal()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">幣別</label>
+                        <select id="tx-currency" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                            <option value="TWD">TWD</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">總投入金額 (股數×單價 + 手續費)</label>
+                    <input type="text" id="tx-total" readonly class="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-emerald-400 font-bold" value="0">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">備註 (選填)</label>
+                    <input type="text" id="tx-note" placeholder="例如: 定期定額加碼" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                </div>
+                <button type="submit" id="submit-btn" class="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg">
+                    確認送出並寫回試算表
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- 頁面三：質押貸款與維持率計算 (Loan Calculator) -->
+    <main id="view-loan" class="p-4 max-w-md mx-auto space-y-6 hidden">
+        <section class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+            <h2 class="text-lg font-bold text-emerald-400 border-b border-slate-700 pb-2">🧮 質押維持率與額度計算</h2>
+            
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="text-xs text-slate-400">「01質押組合」現值 (自動帶入)</label>
+                    <input type="text" id="loan-collateral" readonly class="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 font-bold" value="0">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400">輸入目前貸款總金額 (TWD)</label>
+                    <input type="number" id="loan-amount" placeholder="例如: 500000" oninput="saveAndCalculateLoan()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white">
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400 text-xs">目前即時維持率</span>
+                        <span id="res-ratio" class="text-xl font-extrabold text-emerald-400">0.00%</span>
+                    </div>
+
+                    <div id="res-advice-box" class="p-3 rounded-xl border text-xs bg-slate-900 border-slate-700 space-y-2">
+                        <div class="font-bold text-slate-300">💡 300% 安全線操作建議</div>
+                        <div id="res-advice-text" class="text-slate-400">請先輸入目前貸款金額以進行計算。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- 底部導航列 -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-3 flex justify-around text-xs text-slate-400">
-        <button class="text-emerald-400 font-bold flex flex-col items-center">
-            <span>📊</span>總覽
-        </button>
-        <button class="flex flex-col items-center hover:text-white">
-            <span>📝</span>交易紀錄
-        </button>
-        <button class="flex flex-col items-center hover:text-white">
-            <span>🧮</span>貸款計算
-        </button>
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-3 flex justify-around text-xs text-slate-400 z-50">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="text-emerald-400 font-bold flex flex-col items-center"><span>📊</span>總覽</button>
+        <button onclick="switchTab('transaction')" id="nav-transaction" class="flex flex-col items-center hover:text-white"><span>📝</span>新增交易</button>
+        <button onclick="switchTab('loan')" id="nav-loan" class="flex flex-col items-center hover:text-white"><span>🧮</span>貸款計算</button>
     </nav>
 
+    <!-- JavaScript 邏輯 -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyNpmX_9h5GUdmigFfLw31uqDF6wfWQ0Ru0OSjUZRWBfchmJDjC7nSu0C5gNhnUtyqpXw/exec";
+        
+        let globalPortfolioData = [];
+        let globalSettingsData = [];
+        let cachedPledgeValue = 0; 
+
+        function switchTab(tab) {
+            const dash = document.getElementById('view-dashboard');
+            const tx = document.getElementById('view-transaction');
+            const loan = document.getElementById('view-loan');
+            
+            const navDash = document.getElementById('nav-dashboard');
+            const navTx = document.getElementById('nav-transaction');
+            const navLoan = document.getElementById('nav-loan');
+
+            dash.classList.add('hidden');
+            tx.classList.add('hidden');
+            loan.classList.add('hidden');
+            navDash.className = "flex flex-col items-center hover:text-white";
+            navTx.className = "flex flex-col items-center hover:text-white";
+            navLoan.className = "flex flex-col items-center hover:text-white";
+
+            if (tab === 'dashboard') {
+                dash.classList.remove('hidden');
+                navDash.className = "text-emerald-400 font-bold flex flex-col items-center";
+                fetchAndRenderPortfolio();
+            } else if (tab === 'transaction') {
+                tx.classList.remove('hidden');
+                navTx.className = "text-emerald-400 font-bold flex flex-col items-center";
+                document.getElementById('tx-date').valueAsDate = new Date();
+                initCategoryDropdown();
+            } else if (tab === 'loan') {
+                loan.classList.remove('hidden');
+                navLoan.className = "text-emerald-400 font-bold flex flex-col items-center";
+                document.getElementById('loan-collateral').value = `$${cachedPledgeValue.toLocaleString()} TWD`;
+                
+                let savedLoan = localStorage.getItem('user_loan_amount');
+                if (savedLoan) {
+                    document.getElementById('loan-amount').value = savedLoan;
+                }
+                calculateLoanMetrics();
+            }
+        }
+
+        function saveAndCalculateLoan() {
+            let val = document.getElementById('loan-amount').value;
+            localStorage.setItem('user_loan_amount', val);
+            calculateLoanMetrics();
+        }
+
+        function calculateLoanMetrics() {
+            let collateral = cachedPledgeValue;
+            let loanAmount = parseFloat(document.getElementById('loan-amount').value) || 0;
+            const ratioEl = document.getElementById('res-ratio');
+            const adviceText = document.getElementById('res-advice-text');
+            const badgeEl = document.getElementById('dashboard-maintenance-badge');
+            const diffEl = document.getElementById('dashboard-diff-amount');
+
+            if (loanAmount <= 0) {
+                ratioEl.innerText = "---";
+                ratioEl.className = "text-xl font-extrabold text-slate-400";
+                adviceText.innerText = "請輸入有效的貸款金額。";
+                badgeEl.innerText = "尚未設定貸款";
+                badgeEl.className = "font-bold px-2 py-0.5 rounded bg-slate-700 text-slate-300";
+                if(diffEl) diffEl.innerText = "---";
+                return;
+            }
+
+            let ratio = (collateral / loanAmount) * 100;
+            ratioEl.innerText = ratio.toFixed(2) + "%";
+
+            let maxLoanAt300 = collateral / 3;
+            let diff = maxLoanAt300 - loanAmount; 
+
+            if (diff >= 0) {
+                diffEl.innerHTML = `<span class="text-emerald-400 font-bold">+${Math.round(diff).toLocaleString()} TWD</span>`;
+            } else {
+                diffEl.innerHTML = `<span class="text-red-400 font-bold">-${Math.round(Math.abs(diff)).toLocaleString()} TWD</span>`;
+            }
+
+            let badgeHtml = "";
+            let adviceHtml = "";
+
+            if (ratio >= 300) {
+                ratioEl.className = "text-xl font-extrabold text-emerald-400";
+                badgeHtml = `<span class="font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">✅ 安全 (${ratio.toFixed(1)}%)</span>`;
+                adviceHtml = `🟢 <b>維持率高於 300% 安全線！</b><br>您還可以再加碼借貸金額約：<b class="text-emerald-400">+${Math.round(diff).toLocaleString()} TWD</b> (使維持率剛好達到 300%)`;
+            } else if (ratio >= 160) {
+                ratioEl.className = "text-xl font-extrabold text-amber-400";
+                badgeHtml = `<span class="font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">⚠️ 偏低 (${ratio.toFixed(1)}%)</span>`;
+                adviceHtml = `⚠️ <b>維持率低於 300% 但高於斷頭線 (160%)</b><br>若想回到 300% 安全水位，需償還本金或補足擔保品價值約：<b class="text-amber-400">-${Math.round(Math.abs(diff)).toLocaleString()} TWD</b>`;
+            } else {
+                ratioEl.className = "text-xl font-extrabold text-red-500";
+                badgeHtml = `<span class="font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400">🚨 危險 (${ratio.toFixed(1)}%)</span>`;
+                let needMore = loanAmount - (collateral / 1.6);
+                adviceHtml = `🚨 <b>警告：維持率已逼近或低於追繳防線 (160%)！</b><br>請立即補繳保證金或償還本金至少：<b class="text-red-400">-${Math.round(Math.abs(needMore)).toLocaleString()} TWD</b>`;
+            }
+
+            badgeEl.innerHTML = badgeHtml;
+            adviceText.innerHTML = adviceHtml;
+        }
+
+        function initCategoryDropdown() {
+            const categorySelect = document.getElementById('tx-category');
+            categorySelect.innerHTML = '<option value="">請選擇組合分類</option>';
+            let categories = [...new Set(globalPortfolioData.map(item => item.組合分類))].filter(Boolean);
+            categories.forEach(cat => {
+                let opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categorySelect.appendChild(opt);
+            });
+            document.getElementById('tx-symbol').innerHTML = '<option value="">請先選擇組合分類</option>';
+        }
+
+        function onCategoryChange() {
+            const selectedCategory = document.getElementById('tx-category').value;
+            const symbolSelect = document.getElementById('tx-symbol');
+            symbolSelect.innerHTML = '<option value="">請選擇股票代號</option>';
+            if (!selectedCategory) return;
+            let filteredItems = globalPortfolioData.filter(item => item.組合分類 === selectedCategory);
+            filteredItems.forEach(item => {
+                let opt = document.createElement('option');
+                opt.value = item.股票代號;
+                opt.textContent = `${item.股票代號} (現價: ${item.現價})`;
+                symbolSelect.appendChild(opt);
+            });
+            let matchedSetting = globalSettingsData.find(s => s.組合分類 === selectedCategory);
+            if (matchedSetting && matchedSetting.幣別) {
+                document.getElementById('tx-currency').value = matchedSetting.幣別;
+            }
+        }
+
+        function calculateTotal() {
+            let shares = parseFloat(document.getElementById('tx-shares').value) || 0;
+            let price = parseFloat(document.getElementById('tx-price').value) || 0;
+            let fee = parseFloat(document.getElementById('tx-fee').value) || 0;
+            let total = (shares * price) + fee;
+            document.getElementById('tx-total').value = total.toFixed(2);
+        }
+
+        async function submitTransaction(event) {
+            event.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "正在寫回雲端...";
+            btn.disabled = true;
+
+            const payload = {
+                date: document.getElementById('tx-date').value,
+                category: document.getElementById('tx-category').value,
+                symbol: document.getElementById('tx-symbol').value,
+                shares: document.getElementById('tx-shares').value,
+                price: document.getElementById('tx-price').value,
+                fee: document.getElementById('tx-fee').value,
+                totalAmount: document.getElementById('tx-total').value,
+                currency: document.getElementById('tx-currency').value,
+                note: document.getElementById('tx-note').value,
+                rate: 1
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    alert("✅ 交易紀錄已成功寫回試算表！");
+                    document.getElementById('tx-form').reset();
+                    switchTab('dashboard');
+                } else {
+                    alert("❌ 寫回失敗: " + result.message);
+                }
+            } catch (error) {
+                console.error("提交錯誤:", error);
+                alert("❌ 網路連線錯誤，無法寫回資料。");
+            } finally {
+                btn.innerText = "確認送出並寫回試算表";
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchAndRenderPortfolio() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                globalPortfolioData = result.portfolio || [];
+                globalSettingsData = result.settings || [];
+
+                const settingsMap = {};
+                globalSettingsData.forEach(s => {
+                    settingsMap[s.組合分類] = s;
+                });
+
+                const container = document.getElementById('group-container');
+                container.innerHTML = "";
+
+                let grandTotalTWD = 0;
+                let pledgeTotalTWD = 0; 
+                let groups = {};
+
+                globalPortfolioData.forEach(item => {
+                    let category = item.組合分類 || "未分類";
+                    if (!groups[category]) {
+                        let setting = settingsMap[category] || {};
+                        groups[category] = {
+                            totalValue: 0,
+                            currency: setting.幣別 || "TWD",
+                            exchangeRate: Number(setting.匯率) || 1,
+                            items: []
+                        };
+                    }
+                    let mValue = Number(item.目前市值) || 0;
+                    groups[category].totalValue += mValue;
+                    groups[category].items.push(item);
+
+                    let rate = Number(groups[category].exchangeRate) || 1;
+                    let convertedValue = mValue * rate;
+                    grandTotalTWD += convertedValue;
+
+                    if (category === "01質押組合") {
+                        pledgeTotalTWD += convertedValue;
+                    }
+                });
+
+                cachedPledgeValue = Math.round(pledgeTotalTWD);
+
+                // 同步計算維持率與差額金額
+                calculateLoanMetrics();
+
+                document.getElementById('grand-total-value').innerHTML = `$${Math.round(grandTotalTWD).toLocaleString()} <span class="text-xs text-slate-400 font-normal">TWD</span>`;
+
+                for (let category in groups) {
+                    let groupData = groups[category];
+                    let groupId = `group-${category}`;
+                    let groupSetting = settingsMap[category] || {};
+
+                    let lv1Status = groupSetting.下跌加碼lv1 || "無資料";
+                    let statusColor = lv1Status.includes("冷卻") ? "bg-amber-500/15 text-amber-400 border-amber-500/30" : "bg-slate-700 text-slate-300 border-slate-600";
+                    if (lv1Status.includes("達標") || lv1Status.includes("觸發")) {
+                        statusColor = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+                    }
+
+                    let currencySymbol = "$";
+                    let formattedValue = `${currencySymbol}${groupData.totalValue.toLocaleString()} ${groupData.currency}`;
+
+                    let groupHTML = `
+                        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-md">
+                            <div onclick="toggleGroup('${groupId}')" class="p-4 cursor-pointer hover:bg-slate-750 transition space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <div class="font-bold text-base text-emerald-400 flex items-center gap-2">
+                                        📁 ${category}
+                                    </div>
+                                    <span class="text-xs px-2 py-0.5 rounded-full border ${statusColor}">LV1: ${lv1Status}</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <div>
+                                        <div class="text-xs text-slate-400">${groupData.items.length} 檔標的總市值</div>
+                                        <div class="font-extrabold text-white text-lg">${formattedValue}</div>
+                                    </div>
+                                    <div class="text-xs text-slate-400 flex items-center gap-1">
+                                        <span id="text-${groupId}">展開明細</span>
+                                        <span id="icon-${groupId}" class="transition-transform duration-200">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="${groupId}" class="hidden border-t border-slate-700/80 bg-slate-850/50 p-3 space-y-2">
+                    `;
+
+                    groupData.items.forEach(item => {
+                        groupHTML += `
+                            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700/60 flex justify-between items-center text-sm">
+                                <div>
+                                    <div class="font-bold text-slate-100">${item.股票代號}</div>
+                                    <div class="text-xs text-slate-400">現價: ${item.現價} | 股數: ${item.總持股數}</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-block px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs rounded mb-1">${item.再平衡狀態 || '正常'}</span>
+                                    <div class="text-xs font-semibold text-slate-200">${currencySymbol}${Number(item.目前市值).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    groupHTML += `</div></div>`;
+                    container.innerHTML += groupHTML;
+                }
+
+            } catch (error) {
+                console.error('載入失敗:', error);
+                document.getElementById('group-container').innerHTML = `<div class="p-4 text-red-400 text-center text-sm">無法載入雲端數據，請檢查 API。</div>`;
+            }
+        }
+
+        function toggleGroup(groupId) {
+            const el = document.getElementById(groupId);
+            const icon = document.getElementById(`icon-${groupId}`);
+            const text = document.getElementById(`text-${groupId}`);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+                text.innerText = '收合明細';
+            } else {
+                el.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+                text.innerText = '展開明細';
+            }
+        }
+
+        fetchAndRenderPortfolio();
+    </script>
 </body>
 </html>
