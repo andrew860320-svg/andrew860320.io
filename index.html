@@ -149,6 +149,66 @@
         let globalSettingsData = [];
         let cachedPledgeValue = 0; 
 
+        // 依 LV3 -> LV2 -> LV1 優先順序取得最高建議
+        function getHighestDipSuggestion(setting) {
+            if (!setting) {
+                return {
+                    label: "無資料",
+                    badgeClass: "bg-slate-700 text-slate-300 border-slate-600"
+                };
+            }
+
+            const tiers = [
+                { level: "LV3", raw: setting.下跌加碼lv3, date: setting.lv3加碼日 },
+                { level: "LV2", raw: setting.下跌加碼lv2, date: setting.lv2加碼日 },
+                { level: "LV1", raw: setting.下跌加碼lv1, date: setting.lv1加碼日 }
+            ];
+
+            // 1. 優先找「已達成 / 觸發」的最高階梯 (LV3 -> LV2 -> LV1)
+            for (const tier of tiers) {
+                const text = String(tier.raw || "").trim();
+                if (!text) continue;
+                if (text.includes("條件達成") || text.includes("達成") || text.includes("觸發")) {
+                    const colorMap = {
+                        LV3: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                        LV2: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        LV1: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    };
+                    return {
+                        label: `${tier.level}: ${text}`,
+                        badgeClass: colorMap[tier.level]
+                    };
+                }
+            }
+
+            // 2. 若皆未達成，檢查是否有「冷卻中」的最高階梯
+            for (const tier of tiers) {
+                const text = String(tier.raw || "").trim();
+                if (text && text.includes("冷卻")) {
+                    return {
+                        label: `${tier.level}: ${text}`,
+                        badgeClass: "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                    };
+                }
+            }
+
+            // 3. 否則顯示最高有填寫內容的狀態（例如 LV1 尚未達標）
+            for (const tier of tiers) {
+                const text = String(tier.raw || "").trim();
+                if (text) {
+                    return {
+                        label: `${tier.level}: ${text}`,
+                        badgeClass: "bg-slate-700 text-slate-300 border-slate-600"
+                    };
+                }
+            }
+
+            return {
+                label: "無資料",
+                badgeClass: "bg-slate-700 text-slate-300 border-slate-600"
+            };
+        }
+
         function switchTab(tab) {
             const dash = document.getElementById('view-dashboard');
             const tx = document.getElementById('view-transaction');
@@ -381,11 +441,7 @@
                     let groupId = `group-${category}`;
                     let groupSetting = settingsMap[category] || {};
 
-                    let lv1Status = groupSetting.下跌加碼lv1 || "無資料";
-                    let statusColor = lv1Status.includes("冷卻") ? "bg-amber-500/15 text-amber-400 border-amber-500/30" : "bg-slate-700 text-slate-300 border-slate-600";
-                    if (lv1Status.includes("達標") || lv1Status.includes("觸發")) {
-                        statusColor = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-                    }
+                    const highestDip = getHighestDipSuggestion(groupSetting);
 
                     let currencySymbol = "$";
                     let formattedValue = `${currencySymbol}${groupData.totalValue.toLocaleString()} ${groupData.currency}`;
@@ -393,11 +449,11 @@
                     let groupHTML = `
                         <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-md">
                             <div onclick="toggleGroup('${groupId}')" class="p-4 cursor-pointer hover:bg-slate-750 transition space-y-2">
-                                <div class="flex justify-between items-center">
-                                    <div class="font-bold text-base text-emerald-400 flex items-center gap-2">
+                                <div class="flex justify-between items-start gap-2">
+                                    <div class="font-bold text-base text-emerald-400 flex items-center gap-2 shrink-0">
                                         📁 ${category}
                                     </div>
-                                    <span class="text-xs px-2 py-0.5 rounded-full border ${statusColor}">LV1: ${lv1Status}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full border text-right ${highestDip.badgeClass}">${highestDip.label}</span>
                                 </div>
                                 <div class="flex justify-between items-end">
                                     <div>
